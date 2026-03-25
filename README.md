@@ -1,4 +1,4 @@
-# automation_scripts
+# infra-ops-scripts
 
 Collection of day-to-day automation scripts for Linux administration, Terraform workflows, and service operations.
 
