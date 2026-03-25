@@ -1,59 +1,173 @@
-# Sample workflow for building and deploying a Jekyll site to GitHub Pages
-name: Deploy Jekyll with GitHub Pages dependencies preinstalled
+name: Build and Publish Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main", "feature/**"]
-
-  # Runs for pull requests targeting main
   pull_request:
     branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Build job
   build:
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        with:
-          enablement: false
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Checkout repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init repo
+          cd repo
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth 1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
 
-  # Deployment job
+      - name: Build static site
+        run: |
+          python -m pip install --upgrade pip markdown
+          python - <<'PY'
+          from pathlib import Path
+          import html
+          import markdown
+
+          repo_dir = Path("repo")
+          readme_path = repo_dir / "README.md"
+          content = readme_path.read_text(encoding="utf-8") if readme_path.exists() else "# Project"
+          body = markdown.markdown(content, extensions=["tables", "fenced_code"])
+
+          files = sorted(
+              path.name
+              for path in repo_dir.iterdir()
+              if path.is_file() and path.name not in {"README.md", ".gitignore"}
+          )
+          file_list = "".join(f"<li>{html.escape(name)}</li>" for name in files)
+
+          output_dir = Path("site")
+          output_dir.mkdir(exist_ok=True)
+          output_dir.joinpath("index.html").write_text(
+              f"""<!doctype html>
+          <html lang=\"en\">
+          <head>
+            <meta charset=\"utf-8\">
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+            <title>{html.escape(Path.cwd().name)}</title>
+            <style>
+              :root {{ color-scheme: light; }}
+              body {{ font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f5f7fb; color: #17202a; }}
+              main {{ max-width: 900px; margin: 40px auto; background: white; padding: 32px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }}
+              h1, h2, h3 {{ color: #0f2d52; }}
+              code, pre {{ background: #f0f4f8; border-radius: 6px; }}
+              code {{ padding: 2px 6px; }}
+              pre {{ padding: 14px; overflow: auto; }}
+              ul {{ line-height: 1.7; }}
+              .files {{ margin-top: 28px; padding-top: 20px; border-top: 1px solid #dde6f0; }}
+            </style>
+          </head>
+          <body>
+            <main>
+              {body}
+              <section class=\"files\">
+                <h2>Repository Files</h2>
+                <ul>{file_list}</ul>
+              </section>
+            </main>
+          </body>
+          </html>
+          """,
+              encoding="utf-8",
+          )
+          output_dir.joinpath(".nojekyll").write_text("", encoding="utf-8")
+          PY
+
   deploy:
-    if: github.event_name != 'pull_request'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Checkout repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init repo
+          cd repo
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth 1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+
+      - name: Build static site
+        run: |
+          python -m pip install --upgrade pip markdown
+          python - <<'PY'
+          from pathlib import Path
+          import html
+          import markdown
+
+          repo_dir = Path("repo")
+          readme_path = repo_dir / "README.md"
+          content = readme_path.read_text(encoding="utf-8") if readme_path.exists() else "# Project"
+          body = markdown.markdown(content, extensions=["tables", "fenced_code"])
+
+          files = sorted(
+              path.name
+              for path in repo_dir.iterdir()
+              if path.is_file() and path.name not in {"README.md", ".gitignore"}
+          )
+          file_list = "".join(f"<li>{html.escape(name)}</li>" for name in files)
+
+          output_dir = Path("site")
+          output_dir.mkdir(exist_ok=True)
+          output_dir.joinpath("index.html").write_text(
+              f"""<!doctype html>
+          <html lang=\"en\">
+          <head>
+            <meta charset=\"utf-8\">
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+            <title>{html.escape(Path.cwd().name)}</title>
+            <style>
+              :root {{ color-scheme: light; }}
+              body {{ font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f5f7fb; color: #17202a; }}
+              main {{ max-width: 900px; margin: 40px auto; background: white; padding: 32px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }}
+              h1, h2, h3 {{ color: #0f2d52; }}
+              code, pre {{ background: #f0f4f8; border-radius: 6px; }}
+              code {{ padding: 2px 6px; }}
+              pre {{ padding: 14px; overflow: auto; }}
+              ul {{ line-height: 1.7; }}
+              .files {{ margin-top: 28px; padding-top: 20px; border-top: 1px solid #dde6f0; }}
+            </style>
+          </head>
+          <body>
+            <main>
+              {body}
+              <section class=\"files\">
+                <h2>Repository Files</h2>
+                <ul>{file_list}</ul>
+              </section>
+            </main>
+          </body>
+          </html>
+          """,
+              encoding="utf-8",
+          )
+          output_dir.joinpath(".nojekyll").write_text("", encoding="utf-8")
+          PY
+
+      - name: Publish to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --orphan gh-pages
+          git rm -rf .
+          cp -r ../site/* .
+          touch .nojekyll
+          git add .
+          git commit -m "Deploy site for ${GITHUB_SHA}" || echo "No changes to commit"
+          git push --force origin gh-pages
