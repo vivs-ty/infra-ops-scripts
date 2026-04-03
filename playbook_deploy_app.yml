@@ -1,0 +1,119 @@
+---
+- name: Deploy Application via Docker
+  hosts: all
+  become: true
+
+  vars:
+    # -------------------------------------------------------------------
+    # Application deployment configuration
+    # Update these variables per deployment
+    # -------------------------------------------------------------------
+    app_name: "myapp"
+    docker_image: "nginx"                  # Image name (e.g. myrepo/myapp)
+    docker_tag: "latest"                   # Image tag (e.g. 1.0.0, latest)
+    container_port: 8080                   # Port exposed on the host
+    app_port: 80                           # Port the container listens on internally
+    restart_policy: "always"              # Docker restart policy
+    env_vars:                              # Environment variables passed to the container
+      APP_ENV: "production"
+      LOG_LEVEL: "info"
+    docker_registry: ""                    # Leave empty for Docker Hub; set for private registry
+    docker_registry_user: ""              # Registry username (if private registry)
+    docker_registry_password: ""          # Registry password (if private registry)
+
+  tasks:
+
+    # -----------------------------------------------------------------------
+    # Verify Docker is installed and running
+    # -----------------------------------------------------------------------
+
+    - name: Ensure Docker service is running
+      systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    # -----------------------------------------------------------------------
+    # Log in to private registry (if configured)
+    # -----------------------------------------------------------------------
+
+    - name: Log in to Docker registry
+      docker_login:
+        registry_url: "{{ docker_registry }}"
+        username: "{{ docker_registry_user }}"
+        password: "{{ docker_registry_password }}"
+      when:
+        - docker_registry | length > 0
+        - docker_registry_user | length > 0
+      no_log: true
+
+    # -----------------------------------------------------------------------
+    # Pull the latest image
+    # -----------------------------------------------------------------------
+
+    - name: Pull Docker image
+      docker_image:
+        name: "{{ docker_registry + '/' if docker_registry | length > 0 else '' }}{{ docker_image }}:{{ docker_tag }}"
+        source: pull
+        force_source: true
+      register: image_pull_result
+
+    - name: Report image pull result
+      debug:
+        msg: "Image pulled: {{ docker_image }}:{{ docker_tag }} — changed: {{ image_pull_result.changed }}"
+
+    # -----------------------------------------------------------------------
+    # Stop and remove the existing container (if running)
+    # -----------------------------------------------------------------------
+
+    - name: Stop existing container
+      docker_container:
+        name: "{{ app_name }}"
+        state: stopped
+      failed_when: false
+
+    - name: Remove existing container
+      docker_container:
+        name: "{{ app_name }}"
+        state: absent
+      failed_when: false
+
+    # -----------------------------------------------------------------------
+    # Start the new container
+    # -----------------------------------------------------------------------
+
+    - name: Start new container
+      docker_container:
+        name: "{{ app_name }}"
+        image: "{{ docker_registry + '/' if docker_registry | length > 0 else '' }}{{ docker_image }}:{{ docker_tag }}"
+        state: started
+        restart_policy: "{{ restart_policy }}"
+        ports:
+          - "{{ container_port }}:{{ app_port }}"
+        env: "{{ env_vars }}"
+        detach: true
+      register: container_start_result
+
+    # -----------------------------------------------------------------------
+    # Verify container is healthy
+    # -----------------------------------------------------------------------
+
+    - name: Wait for container to be running
+      docker_container_info:
+        name: "{{ app_name }}"
+      register: container_info
+      until: container_info.container.State.Status == "running"
+      retries: 10
+      delay: 5
+
+    # -----------------------------------------------------------------------
+    # Report
+    # -----------------------------------------------------------------------
+
+    - name: Report deployment result
+      debug:
+        msg: >
+          {{ inventory_hostname }} — container '{{ app_name }}' deployed successfully.
+          Image: {{ docker_image }}:{{ docker_tag }}.
+          Status: {{ container_info.container.State.Status }}.
+          Port mapping: {{ container_port }}->{{ app_port }}.
