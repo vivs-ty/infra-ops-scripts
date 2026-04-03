@@ -19,29 +19,311 @@
 <body>
   <main>
     <h1>infra-ops-scripts</h1>
-<p>Collection of day-to-day automation scripts for Linux administration, Terraform workflows, and service operations.</p>
-<h2>Script Utilities</h2>
-<ul>
-<li><a href="disk_space.ps1">disk_space.ps1</a> - Reclaims disk space and generates a disk/folder usage report.</li>
-<li><a href="check_services_status.sh">check_services_status.sh</a> - Checks the runtime status of common services.</li>
-<li><a href="start_stop_restart_service.sh">start_stop_restart_service.sh</a> - Interactive utility to start, stop, or restart a service.</li>
-</ul>
-<h2>Terraform Helpers</h2>
-<ul>
-<li><a href="apply.sh">apply.sh</a></li>
-<li><a href="destroy.sh">destroy.sh</a></li>
-<li><a href="plan.sh">plan.sh</a></li>
-</ul>
+<p>Collection of day-to-day automation scripts for Linux administration, Terraform workflows, Ansible playbooks, Docker, LXD, and Windows PowerShell operations.</p>
+<hr />
+<h2>Terraform</h2>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="plan.sh">plan.sh</a></td>
+<td>Init and run <code>terraform plan</code> against a given path</td>
+</tr>
+<tr>
+<td><a href="apply.sh">apply.sh</a></td>
+<td>Init and run <code>terraform apply -auto-approve</code> against a given path</td>
+</tr>
+<tr>
+<td><a href="destroy.sh">destroy.sh</a></td>
+<td>Init and run <code>terraform destroy -auto-approve</code> against a given path</td>
+</tr>
+<tr>
+<td><a href="validate.sh">validate.sh</a></td>
+<td>Run <code>terraform fmt -check</code> and <code>terraform validate</code> before plan/apply</td>
+</tr>
+<tr>
+<td><a href="workspace.sh">workspace.sh</a></td>
+<td>Create, select, list, show, and delete Terraform workspaces</td>
+</tr>
+<tr>
+<td><a href="state_list.sh">state_list.sh</a></td>
+<td>List, show, move, remove, and pull Terraform state resources</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">./plan.sh terraform/instance
+./apply.sh terraform/instance
+./validate.sh terraform/instance
+./workspace.sh create staging terraform/instance
+./state_list.sh list terraform/instance
+./state_list.sh remove aws_instance.web terraform/instance
+</code></pre>
+<hr />
+<h2>Ansible Playbooks</h2>
+<table>
+<thead>
+<tr>
+<th>Playbook</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="playbook_patch_os.yml">playbook_patch_os.yml</a></td>
+<td>Patch and reboot Linux hosts (apt/yum), one host at a time</td>
+</tr>
+<tr>
+<td><a href="playbook_user_management.yml">playbook_user_management.yml</a></td>
+<td>Create/delete users, manage SSH keys and sudo access</td>
+</tr>
+<tr>
+<td><a href="playbook_deploy_app.yml">playbook_deploy_app.yml</a></td>
+<td>Pull a Docker image and deploy a container on remote hosts</td>
+</tr>
+<tr>
+<td><a href="playbook_service_restart.yml">playbook_service_restart.yml</a></td>
+<td>Start, stop, or restart services across hosts</td>
+</tr>
+<tr>
+<td><a href="playbook_service_status_check.yml">playbook_service_status_check.yml</a></td>
+<td>Check status of services within a deployment</td>
+</tr>
+<tr>
+<td><a href="service_status.yml">service_status.yml</a></td>
+<td>Check and report status of defined services</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Inventory:</strong> <a href="inventory/hosts.ini"><code>inventory/hosts.ini</code></a></p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">ansible-playbook -i inventory/hosts.ini playbook_patch_os.yml
+ansible-playbook -i inventory/hosts.ini playbook_patch_os.yml --limit staging
+ansible-playbook -i inventory/hosts.ini playbook_deploy_app.yml --limit webservers
+ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
+</code></pre>
+<hr />
+<h2>System Administration (Bash)</h2>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="check_services_status.sh">check_services_status.sh</a></td>
+<td>Check runtime status of common services</td>
+</tr>
+<tr>
+<td><a href="start_stop_restart_service.sh">start_stop_restart_service.sh</a></td>
+<td>Interactive start/stop/restart for a service</td>
+</tr>
+<tr>
+<td><a href="backup.sh">backup.sh</a></td>
+<td>Create timestamped tar.gz archives with integrity check and retention cleanup</td>
+</tr>
+<tr>
+<td><a href="log_rotate.sh">log_rotate.sh</a></td>
+<td>Compress and delete old log files with configurable age and dry-run support</td>
+</tr>
+<tr>
+<td><a href="cpu_memory_monitor.sh">cpu_memory_monitor.sh</a></td>
+<td>Monitor CPU and memory, alert on threshold breach with optional email</td>
+</tr>
+<tr>
+<td><a href="ssl_cert_check.sh">ssl_cert_check.sh</a></td>
+<td>Check SSL certificate expiry for a list of hosts, WARN/CRIT thresholds</td>
+</tr>
+<tr>
+<td><a href="user_audit.sh">user_audit.sh</a></td>
+<td>Audit login-shell users, sudo access, last logins, failed attempts, UID 0 accounts</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">./backup.sh /etc/nginx /backups 14
+./log_rotate.sh /var/log/nginx --age 7 --delete 60 --dry-run
+./cpu_memory_monitor.sh --cpu-threshold 85 --mem-threshold 80 --interval 30
+./ssl_cert_check.sh hosts.txt --warn 30 --crit 7 --email ops@example.com
+./user_audit.sh --output /tmp/audit.txt
+</code></pre>
+<hr />
+<h2>Docker</h2>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="docker_cleanup.sh">docker_cleanup.sh</a></td>
+<td>Remove stopped containers, dangling images, unused volumes and networks</td>
+</tr>
+<tr>
+<td><a href="docker_health_check.sh">docker_health_check.sh</a></td>
+<td>Check health status of containers, auto-restart unhealthy ones</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">./docker_cleanup.sh --all --dry-run
+./docker_cleanup.sh --containers --images
+./docker_health_check.sh --restart --email ops@example.com
+./docker_health_check.sh --name myapp --restart
+</code></pre>
+<hr />
+<h2>LXD Containers</h2>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="lxd_snapshot.sh">lxd_snapshot.sh</a></td>
+<td>Create, list, restore, delete LXD snapshots with retention pruning</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">./lxd_snapshot.sh create rocky
+./lxd_snapshot.sh auto rocky --retain 7
+./lxd_snapshot.sh all --retain 3
+./lxd_snapshot.sh restore rocky snap_20260403_120000
+</code></pre>
+<hr />
+<h2>Windows PowerShell</h2>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="disk_space.ps1">disk_space.ps1</a></td>
+<td>Collect disk usage across servers and email an HTML report</td>
+</tr>
+<tr>
+<td><a href="cpu_memory_report.ps1">cpu_memory_report.ps1</a></td>
+<td>Collect CPU and memory stats across servers, color-coded HTML report</td>
+</tr>
+<tr>
+<td><a href="windows_update_status.ps1">windows_update_status.ps1</a></td>
+<td>Check pending Windows Updates and reboot status per server</td>
+</tr>
+<tr>
+<td><a href="event_log_errors.ps1">event_log_errors.ps1</a></td>
+<td>Pull Critical/Error events from System and Application logs across servers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-powershell"># Update C:\Scripts\Test\ServerList.txt with target server names, then run:
+.\disk_space.ps1
+.\cpu_memory_report.ps1
+.\windows_update_status.ps1
+.\event_log_errors.ps1
+</code></pre>
+<hr />
+<h2>GitHub Actions Workflows</h2>
+<table>
+<thead>
+<tr>
+<th>Workflow</th>
+<th>Trigger</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href=".github/workflows/terraform-plan.yml">terraform-plan.yml</a></td>
+<td>PR to <code>main</code> touching <code>terraform/**</code></td>
+<td>fmt check, validate, plan — posts output as PR comment</td>
+</tr>
+<tr>
+<td><a href=".github/workflows/terraform-apply.yml">terraform-apply.yml</a></td>
+<td>Push to <code>main</code> or manual dispatch</td>
+<td>apply with <code>production</code> environment gate (manual approval)</td>
+</tr>
+<tr>
+<td><a href=".github/workflows/ansible-lint.yml">ansible-lint.yml</a></td>
+<td>Push/PR on <code>*.yml</code> files</td>
+<td>Lint all playbooks with <code>ansible-lint</code>, post results as PR comment</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2>Linux Command Notes</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="Controlling%20system%20locale">Controlling system locale</a></td>
+<td><code>localectl</code> usage</td>
+</tr>
+<tr>
+<td><a href="Compiling%20software%20packages">Compiling software packages</a></td>
+<td>Build from source with <code>make</code></td>
+</tr>
+<tr>
+<td><a href="system%20timezone">system timezone</a></td>
+<td><code>timedatectl</code> usage</td>
+</tr>
+<tr>
+<td><a href="Working%20with%20package%20managers">Working with package managers</a></td>
+<td><code>apt</code> and <code>yum</code> reference</td>
+</tr>
+<tr>
+<td><a href="Working%20with%20LXD%20containers">Working with LXD containers</a></td>
+<td><code>lxc</code> quick reference</td>
+</tr>
+<tr>
+<td><a href="Launching%20Docker">Launching Docker</a></td>
+<td>Docker build and run reference</td>
+</tr>
+<tr>
+<td><a href="Install%20and%20launch%20Apache">Install and launch Apache</a></td>
+<td>httpd install via yum</td>
+</tr>
+<tr>
+<td><a href="Discover%20and%20mount%20a%20storage%20volume">Discover and mount a storage volume</a></td>
+<td><code>lsblk</code>, <code>mount</code> reference</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Known Issues</h2>
+<p>See the <a href="https://github.com/vivs-ty/infra-ops-scripts/issues">Issues</a> tab for bugs and planned improvements including:</p>
 <ul>
-<li><a href="Controlling%20system%20locale">Controlling system locale</a></li>
-<li><a href="Compiling%20software%20packages">Compiling software packages</a></li>
-<li><a href="system%20timezone">system timezone</a></li>
-<li><a href="Working%20with%20package%20managers">Working with package managers</a></li>
-<li><a href="Working%20with%20LXD%20containers">Working with LXD containers</a></li>
-<li><a href="Launching%20Docker">Launching Docker</a></li>
-<li><a href="Install%20and%20launch%20Apache">Install and launch Apache</a></li>
-<li><a href="Discover%20and%20mount%20a%20storage%20volume">Discover and mount a storage volume</a></li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/12">#12</a> <code>terraform-plan.yml</code> — missing <code>workflow_dispatch</code> and no error handling for missing plan output</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/13">#13</a> <code>terraform-apply.yml</code> — missing concurrency block allows parallel runs to corrupt state</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/14">#14</a> <code>ansible-lint.yml</code> — hardcoded playbook list will miss new playbooks</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/15">#15</a> <code>ansible-lint.yml</code> — unpinned ansible/ansible-lint versions cause non-deterministic runs</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/1">#1</a> <code>cpu_memory_monitor.sh</code> — add disk usage threshold alerting</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/2">#2</a> <code>ssl_cert_check.sh</code> — <code>date -d</code> not compatible with macOS/BSD</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/3">#3</a> <code>backup.sh</code> — add remote backup via rsync over SSH</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/4">#4</a> <code>docker_health_check.sh</code> — no re-verification after auto-restart</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/5">#5</a> <code>playbook_patch_os.yml</code> — add pre-patch snapshot for rollback</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/6">#6</a> <code>log_rotate.sh</code> — maxdepth misses deeply nested log directories</li>
+<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/8">#8</a> <code>windows_update_status.ps1</code> — WUA COM object fails on WSUS-configured servers</li>
 </ul>
     <section class="files">
       <h2>Repository Files</h2>
