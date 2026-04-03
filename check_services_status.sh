@@ -31,7 +31,7 @@ check_service_status() {
   fi
 }
 
-source "$(dirname $0)"/get_instance_path.sh
+source "$(dirname "$0")"/get_instance_path.sh
 
 cd "${WORKSPACE_PATH}"/pro-test-cd || exit
 
@@ -77,9 +77,19 @@ terragrunt_cleanStateFile() {
 
 # Main function to execute deployment steps
 main() {
-  cd ../../
-  echo "$PWD"
-  #
+  terragrunt_init
+  terragrunt_plan
+  terragrunt_destroy
+  terragrunt_cleanStateFile
+
+  echo "Checking service status:"
+  for service in "${SERVICES[@]}"; do
+    check_service_status "$service"
+  done
+}
+
+main
+#
   cd "${DEPLOYMENT_DIRECTORY_PATH}"
   # Run Terragrunt commands
   terragrunt_init
