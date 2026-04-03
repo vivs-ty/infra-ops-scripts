@@ -1,0 +1,93 @@
+name: Ansible Lint
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '*.yml'
+      - 'inventory/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '*.yml'
+      - 'inventory/**'
+
+jobs:
+  ansible-lint:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ansible-lint
+        run: |
+          pip install --upgrade pip
+          pip install ansible-lint ansible
+
+      - name: Run ansible-lint on all playbooks
+        id: lint
+        run: |
+          ansible-lint \
+            playbook_service_restart.yml \
+            playbook_service_status_check.yml \
+            playbook_patch_os.yml \
+            playbook_user_management.yml \
+            playbook_deploy_app.yml \
+            service_status.yml \
+            2>&1 | tee lint_output.txt
+        continue-on-error: true
+
+      - name: Post lint results as PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const lintOutput = fs.readFileSync('lint_output.txt', 'utf8');
+            const truncated = lintOutput.length > 60000
+              ? lintOutput.substring(0, 60000) + '\n...(truncated)'
+              : lintOutput;
+
+            const status = '${{ steps.lint.outcome }}' === 'success'
+              ? '✅ All checks passed'
+              : '❌ Lint issues found';
+
+            const body = `## Ansible Lint Results — ${status}
+
+            <details><summary>Show Full Output</summary>
+
+            \`\`\`
+            ${truncated}
+            \`\`\`
+
+            </details>
+
+            > Lint run on commit \`${{ github.sha }}\``;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Upload lint output as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-lint-results
+          path: lint_output.txt
+
+      - name: Fail if lint found issues
+        if: steps.lint.outcome == 'failure'
+        run: exit 1

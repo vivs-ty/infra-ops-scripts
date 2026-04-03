@@ -1,0 +1,94 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+
+  workflow_dispatch:
+    inputs:
+      terraform_path:
+        description: 'Path to Terraform configuration'
+        required: true
+        default: 'terraform'
+
+jobs:
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+
+    environment: production  # Requires manual approval in GitHub Environments
+
+    env:
+      TF_INPUT: false
+      TF_IN_AUTOMATION: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Set Terraform path
+        run: |
+          if [ -z "${{ github.event.inputs.terraform_path }}" ]; then
+            echo "TERRAFORM_PATH=terraform" >> $GITHUB_ENV
+          else
+            echo "TERRAFORM_PATH=${{ github.event.inputs.terraform_path }}" >> $GITHUB_ENV
+          fi
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ${{ env.TERRAFORM_PATH }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TERRAFORM_PATH }}
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ${{ env.TERRAFORM_PATH }}
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        working-directory: ${{ env.TERRAFORM_PATH }}
+
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve tfplan 2>&1 | tee apply_output.txt
+        working-directory: ${{ env.TERRAFORM_PATH }}
+
+      - name: Post Apply summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let applyOutput = '';
+            try {
+              applyOutput = fs.readFileSync('${{ env.TERRAFORM_PATH }}/apply_output.txt', 'utf8');
+            } catch (e) {
+              applyOutput = 'Apply output not available.';
+            }
+            const truncated = applyOutput.length > 60000
+              ? applyOutput.substring(0, 60000) + '\n...(truncated)'
+              : applyOutput;
+
+            const status = '${{ steps.apply.outcome }}' === 'success' ? '✅ SUCCESS' : '❌ FAILED';
+            await core.summary
+              .addHeading('Terraform Apply — ' + status)
+              .addRaw('**Commit:** `${{ github.sha }}`\n\n')
+              .addRaw('**Branch:** `${{ github.ref_name }}`\n\n')
+              .addDetails('Apply Output', '```hcl\n' + truncated + '\n```')
+              .write();
+
+      - name: Fail if apply failed
+        if: steps.apply.outcome == 'failure'
+        run: exit 1
