@@ -49,7 +49,7 @@
       debug:
         msg: "{{ item.item }}: {{ 'Running' if item.status.ActiveState == 'active' else 'Stopped' }}"
       loop: "{{ service_status_service.results | default([]) }}"
-      when: ansible_service_mgr == 'sysvinit' or ansible_service_mgr == 'upstart' and service_status_service is defined
+      when: (ansible_service_mgr == 'sysvinit' or ansible_service_mgr == 'upstart') and service_status_service is defined
 
     - name: Report Service Status (process check)
       debug:
@@ -60,4 +60,4 @@
     - name: Report Service Status (not found)
       debug:
         msg: "{{ item }}: Not found"
-      loop: "{{ services_to_check | difference((service_status_systemd.results | default([]) | map: 'item' | list) + (service_status_service.results | default([]) | map: 'item' | list) + (service_status_pgrep.results | default([]) | map: 'item' | list)) }}"
+      loop: "{{ services_to_check | difference((service_status_systemd.results | default([]) | map(attribute='item') | list) + (service_status_service.results | default([]) | map(attribute='item') | list) + (service_status_pgrep.results | default([]) | map(attribute='item') | list)) }}"

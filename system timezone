@@ -1,4 +1,4 @@
 # Controlling the system timezone
 timedatectl
 timedatectl list-timezones | grep -i india
-timedatectl set-timezone asia/kolkata
+timedatectl set-timezone Asia/Kolkata

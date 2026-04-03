@@ -33,20 +33,25 @@
     - name: Check Service Status After Action (systemd)
       systemd:
         name: "{{ item.name }}"
-      register: service_status
+      register: service_status_systemd
       loop: "{{ services_to_manage }}"
       when: ansible_service_mgr == 'systemd'
 
     - name: Check Service Status After Action (service)
       service:
         name: "{{ item.name }}"
-      register: service_status
+      register: service_status_service
       loop: "{{ services_to_manage }}"
       when: ansible_service_mgr == 'sysvinit' or ansible_service_mgr == 'upstart'
 
-    - name: Report Service Status After Action
+    - name: Report Service Status After Action (systemd)
       debug:
-        msg: "{{ item.item.name }}: {{ item.item.state }} - {{ service_status.results[item.index].status.ActiveState | default(service_status.results[item.index].status.Status) }}"
-      loop: "{{ services_to_manage | zip(range(services_to_manage | length)) | list }}"
-      loop_control:
-        index_var: index
+        msg: "{{ item.item.name }}: {{ item.status.ActiveState | default('unknown') }}"
+      loop: "{{ service_status_systemd.results | default([]) }}"
+      when: ansible_service_mgr == 'systemd' and service_status_systemd is defined
+
+    - name: Report Service Status After Action (service)
+      debug:
+        msg: "{{ item.item.name }}: {{ item.status.Status | default('unknown') }}"
+      loop: "{{ service_status_service.results | default([]) }}"
+      when: (ansible_service_mgr == 'sysvinit' or ansible_service_mgr == 'upstart') and service_status_service is defined

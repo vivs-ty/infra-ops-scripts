@@ -1,12 +1,15 @@
 ---
-name: Service Status Check Playbook
-description: Automates the process of checking the status of critical services within a specific deployment.
-version: 1.0.0
-author: vivesh
+# Service Status Check Playbook
+# description: Automates the process of checking the status of critical services within a specific deployment.
+# version: 1.0.0
+# author: vivesh
+- name: Service Status Check Playbook
+  hosts: all
+  become: true
 
-# Define global variables
-vars:
-  services:
+  # Define global variables
+  vars:
+    services:
     - nginx 
     - opensearch 
     - tomcat 
@@ -16,12 +19,11 @@ vars:
   # PROJECT_NAME and TENANT_ID would typically be set dynamically,
   #  e.g., from environment variables or user input.  For this static
   #  example, I'll add placeholders.
-  project_name: "pr0-test-cd"      #  Change this
+  project_name: "pro-test-cd"      #  Change this
   tenant_id: "dev01"            #  Change this
-  release_branch: "devlopment"  # Change this
+  release_branch: "development"  # Change this
 
-# Tasks to be executed in the playbook
-tasks:
+  tasks:
   - name: Source get_instance_path.sh
     shell:
       cmd: "source get_instance_path.sh"

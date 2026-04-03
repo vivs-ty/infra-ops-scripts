@@ -2,6 +2,14 @@ $logtime=Get-Date -Format yyyyMMddhhmm
 $findFilesFoldersOutput = "C:\Scripts\Test\Logs\log_$logtime.html";
 $ServerList=Get-Content -Path "C:\Scripts\Test\ServerList.txt"
 
+$Header = @"
+<style>
+TABLE {border-width: 1px; border-style: solid; border-color: black; border-collapse: collapse;}
+TH {border-width: 1px; padding: 3px; border-style: solid; border-color: black; background-color: #6495ED;}
+TD {border-width: 1px; padding: 3px; border-style: solid; border-color: black;}
+</style>
+"@
+
 foreach($ServerName in $ServerList)
 {
 $ServerName=$ServerName.ToUpper()
@@ -10,7 +18,7 @@ if($Test_connection -eq 'True')
 {
 
 Write-Host "*******------ Connected to $ServerName ------*******"
-Invoke-Command -ComputerName $ServerName -ScriptBlock{
+$body_part_1 = Invoke-Command -ComputerName $ServerName -ScriptBlock{
 $ServerName=(Get-WmiObject Win32_OperatingSystem).CSName
 
 $startFolder = "C:\Program Files", "C:\PerfLogs";
@@ -26,14 +34,6 @@ foreach ($i in $colItems)
 
 $startFolder + " | " + "{0:N2}" -f ($totalSize) + " MB"
 
-$Header = @"
-<style>
-TABLE {border-width: 1px; border-style: solid; border-color: black; border-collapse: collapse;}
-TH {border-width: 1px; padding: 3px; border-style: solid; border-color: black; background-color: #6495ED;}
-TD {border-width: 1px; padding: 3px; border-style: solid; border-color: black;}
-</style>
-"@
-
 $body= @" 
 <table>
   <tr>
@@ -42,18 +42,17 @@ $body= @"
   </tr>
   <tr>
     <td>D</td>
-    <td>FolderDected</td>
+    <td>FolderDetected</td>
   </tr> 
 </table><br><br>
 "@
-
-
+$body
 }
 }
 $body_part_2=$null
 
 
-$datavalue=$datavalue=invoke-command -ComputerName $ServerName -scriptblock{ Get-WmiObject  -Class Win32_logicaldisk -Filter "DriveType = '3'" | Select-Object -Property DeviceID, VolumeName, @{L='startFolder';E={"{0:N2}" -f ($_.FreeSpace /1GB)}},@{L="totalSize";E={"{0:N2}" -f ($_.Size/1GB)}},@{L="FreePercent";E = {[Math]::floor((($_.FreeSpace/$_.Size) * 100))}}
+$datavalue=invoke-command -ComputerName $ServerName -scriptblock{ Get-WmiObject  -Class Win32_logicaldisk -Filter "DriveType = '3'" | Select-Object -Property DeviceID, VolumeName, @{L='startFolder';E={"{0:N2}" -f ($_.FreeSpace /1GB)}},@{L="totalSize";E={"{0:N2}" -f ($_.Size/1GB)}},@{L="FreePercent";E = {[Math]::floor((($_.FreeSpace/$_.Size) * 100))}}
 }
 foreach($data in $datavalue)
 {
@@ -72,7 +71,7 @@ if($data.DeviceID -like "*c*")
     
      <td>$startFolder</td>
      <td>$totalSize</td>
-     <td>$FreePercent</td>
+     <td>$($data.FreePercent)</td>
 	 <td>21</td>
   </tr>
   
@@ -81,7 +80,7 @@ if($data.DeviceID -like "*c*")
 Write-Host "Drive : $Drive"
 Write-Host "CurrentFreeSpace (in GB) : $startFolder"
 Write-Host "TotalSpace (in GB) : $totalSize"
-Write-Host "FreeSpaceInPercent : $FreePercent"
+Write-Host "FreeSpaceInPercent : $($data.FreePercent)"
 Write-Host "RecommendedFreeSpaceInPercent : 21"
 Write-Host ""
   }  
@@ -101,7 +100,7 @@ Write-Host ""
 }#Test_connection else ends
 }#Servername Foreach ends
 
-$Subject = "Flodersize Utility Report | $logtime"
+$Subject = "FolderSize Utility Report | $logtime"
 $smtp = "smtp.hosting.local"
 $to="Email <viveshrokzz@yahoo.com>"
 $from = "Foldersize Utility<noreply@vivesh.net>"
