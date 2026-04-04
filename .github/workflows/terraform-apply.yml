@@ -14,12 +14,16 @@ on:
         required: true
         default: 'terraform'
 
+concurrency:
+  group: terraform-apply-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel an in-flight apply; queue instead
+
 jobs:
   terraform-apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
 
-    environment: production  # Requires manual approval in GitHub Environments
+    # environment: production     Requires manual approval in GitHub Environments
 
     env:
       TF_INPUT: false
@@ -67,13 +71,18 @@ jobs:
       - name: Post Apply summary
         if: always()
         uses: actions/github-script@v7
+        env:
+          TF_PATH: ${{ env.TERRAFORM_PATH }}
+          APPLY_OUTCOME: ${{ steps.apply.outcome }}
+          COMMIT_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             let applyOutput = '';
             try {
-              applyOutput = fs.readFileSync('${{ env.TERRAFORM_PATH }}/apply_output.txt', 'utf8');
+              applyOutput = fs.readFileSync(process.env.TF_PATH + '/apply_output.txt', 'utf8');
             } catch (e) {
               applyOutput = 'Apply output not available.';
             }
@@ -81,11 +90,11 @@ jobs:
               ? applyOutput.substring(0, 60000) + '\n...(truncated)'
               : applyOutput;
 
-            const status = '${{ steps.apply.outcome }}' === 'success' ? '✅ SUCCESS' : '❌ FAILED';
+            const status = process.env.APPLY_OUTCOME === 'success' ? '✅ SUCCESS' : '❌ FAILED';
             await core.summary
               .addHeading('Terraform Apply — ' + status)
-              .addRaw('**Commit:** `${{ github.sha }}`\n\n')
-              .addRaw('**Branch:** `${{ github.ref_name }}`\n\n')
+              .addRaw('**Commit:** `' + process.env.COMMIT_SHA + '`\n\n')
+              .addRaw('**Branch:** `' + process.env.REF_NAME + '`\n\n')
               .addDetails('Apply Output', '```hcl\n' + truncated + '\n```')
               .write();
 
