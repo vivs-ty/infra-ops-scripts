@@ -31,48 +31,51 @@ jobs:
       - name: Install ansible-lint
         run: |
           pip install --upgrade pip
-          pip install ansible-lint ansible
+          pip install ansible-lint==24.2.3 ansible-core==2.17.9
 
       - name: Run ansible-lint on all playbooks
         id: lint
         run: |
-          ansible-lint \
-            playbook_service_restart.yml \
-            playbook_service_status_check.yml \
-            playbook_patch_os.yml \
-            playbook_user_management.yml \
-            playbook_deploy_app.yml \
-            service_status.yml \
-            2>&1 | tee lint_output.txt
+          PLAYBOOKS=$(find . -maxdepth 1 \( -name "playbook_*.yml" -o -name "service_status.yml" \) | sort | tr '\n' ' ')
+          if [ -z "$PLAYBOOKS" ]; then
+            echo "No playbooks found to lint."
+            exit 0
+          fi
+          echo "Linting: $PLAYBOOKS"
+          # shellcheck disable=SC2086
+          ansible-lint $PLAYBOOKS 2>&1 | tee lint_output.txt
         continue-on-error: true
 
       - name: Post lint results as PR comment
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        env:
+          LINT_OUTCOME: ${{ steps.lint.outcome }}
+          COMMIT_SHA: ${{ github.sha }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const lintOutput = fs.readFileSync('lint_output.txt', 'utf8');
+            let lintOutput = '(lint output not available)';
+            try {
+              lintOutput = fs.readFileSync('lint_output.txt', 'utf8');
+            } catch (e) {
+              console.log('lint_output.txt not found:', e.message);
+            }
             const truncated = lintOutput.length > 60000
               ? lintOutput.substring(0, 60000) + '\n...(truncated)'
               : lintOutput;
 
-            const status = '${{ steps.lint.outcome }}' === 'success'
-              ? '✅ All checks passed'
-              : '❌ Lint issues found';
+            const status = process.env.LINT_OUTCOME === 'success'
+              ? '\u2705 All checks passed'
+              : '\u274c Lint issues found';
 
-            const body = `## Ansible Lint Results — ${status}
-
-            <details><summary>Show Full Output</summary>
-
-            \`\`\`
-            ${truncated}
-            \`\`\`
-
-            </details>
-
-            > Lint run on commit \`${{ github.sha }}\``;
+            const body =
+              '## Ansible Lint Results \u2014 ' + status + '\n\n' +
+              '<details><summary>Show Full Output</summary>\n\n' +
+              '```\n' + truncated + '\n```\n\n' +
+              '</details>\n\n' +
+              '> Lint run on commit `' + process.env.COMMIT_SHA + '`';
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
