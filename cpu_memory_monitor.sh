@@ -17,6 +17,7 @@ usage() {
   echo "OPTIONS:"
   echo "  -c, --cpu-threshold    PCT   - Alert when CPU usage exceeds PCT% (default: 80)"
   echo "  -m, --mem-threshold    PCT   - Alert when memory usage exceeds PCT% (default: 80)"
+  echo "  -d, --disk-threshold   PCT   - Alert when any disk mount usage exceeds PCT% (default: 90)"
   echo "  -i, --interval         SEC   - Check interval in seconds (default: 60)"
   echo "  -r, --repeat           NUM   - Number of checks to run; 0 = run forever (default: 0)"
   echo "  -l, --log-file         FILE  - Log file path (default: /var/log/resource_monitor.log)"
@@ -35,6 +36,7 @@ usage() {
 # Defaults
 CPU_THRESHOLD=80
 MEM_THRESHOLD=80
+DISK_THRESHOLD=90
 INTERVAL=60
 REPEAT=0
 LOG_FILE="/var/log/resource_monitor.log"
@@ -45,9 +47,10 @@ ALERT_EMAIL=""
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
-    -c|--cpu-threshold) CPU_THRESHOLD="$2"; shift 2 ;;
-    -m|--mem-threshold) MEM_THRESHOLD="$2"; shift 2 ;;
-    -i|--interval)      INTERVAL="$2";      shift 2 ;;
+    -c|--cpu-threshold)  CPU_THRESHOLD="$2";  shift 2 ;;
+    -m|--mem-threshold)  MEM_THRESHOLD="$2";  shift 2 ;;
+    -d|--disk-threshold) DISK_THRESHOLD="$2"; shift 2 ;;
+    -i|--interval)       INTERVAL="$2";       shift 2 ;;
     -r|--repeat)        REPEAT="$2";        shift 2 ;;
     -l|--log-file)      LOG_FILE="$2";      shift 2 ;;
     -e|--email)         ALERT_EMAIL="$2";   shift 2 ;;
@@ -59,7 +62,7 @@ done
 ######################################################################################
 
 # Validate inputs
-for VAR in CPU_THRESHOLD MEM_THRESHOLD INTERVAL REPEAT; do
+for VAR in CPU_THRESHOLD MEM_THRESHOLD DISK_THRESHOLD INTERVAL REPEAT; do
   if ! [[ "${!VAR}" =~ ^[0-9]+$ ]]; then
     echo "ERROR: $VAR must be a positive integer."
     exit 1
@@ -99,6 +102,17 @@ get_mem_usage() {
   echo $(( 100 * (mem_total - mem_available) / mem_total ))
 }
 
+# Helper: print "PCT MOUNT" lines for mounts exceeding threshold
+get_disk_alerts() {
+  local threshold="$1"
+  df -h --output=pcent,target 2>/dev/null \
+    | tail -n +2 \
+    | awk -v thr="$threshold" '{
+        pct=$1; sub(/%/, "", pct);
+        if (pct+0 >= thr+0) print pct, $2
+      }'
+}
+
 # Helper: send alert email
 send_alert() {
   local subject="$1"
@@ -118,6 +132,7 @@ echo "Resource Monitor started : $(date)"
 echo "Host                     : $HOSTNAME"
 echo "CPU threshold            : ${CPU_THRESHOLD}%"
 echo "Memory threshold         : ${MEM_THRESHOLD}%"
+echo "Disk threshold           : ${DISK_THRESHOLD}%"
 echo "Check interval           : ${INTERVAL}s"
 echo "Repeat                   : $([ "$REPEAT" -eq 0 ] && echo 'forever' || echo $REPEAT)"
 echo "Log file                 : $LOG_FILE"
@@ -132,6 +147,7 @@ while true; do
 
   CPU_USAGE=$(get_cpu_usage)
   MEM_USAGE=$(get_mem_usage)
+  DISK_ALERT_LINES=$(get_disk_alerts "$DISK_THRESHOLD")
 
   MEM_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
   MEM_USED_MB=$(( MEM_TOTAL_MB * MEM_USAGE / 100 ))
@@ -146,6 +162,16 @@ while true; do
 
   if [[ "$MEM_USAGE" -ge "$MEM_THRESHOLD" ]]; then
     ALERTS+=("Memory usage ${MEM_USAGE}% (${MEM_USED_MB}MB / ${MEM_TOTAL_MB}MB) exceeds threshold ${MEM_THRESHOLD}%")
+    STATUS="ALERT"
+  fi
+
+  if [[ -n "$DISK_ALERT_LINES" ]]; then
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      pct=$(awk '{print $1}' <<< "$line")
+      mnt=$(awk '{print $2}' <<< "$line")
+      ALERTS+=("Disk usage ${pct}% on ${mnt} exceeds threshold ${DISK_THRESHOLD}%")
+    done <<< "$DISK_ALERT_LINES"
     STATUS="ALERT"
   fi
 
