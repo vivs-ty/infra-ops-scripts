@@ -66,7 +66,7 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 ```bash
 ./backup.sh /etc/nginx /backups 14
 ./log_rotate.sh /var/log/nginx --age 7 --delete 60 --dry-run
-./cpu_memory_monitor.sh --cpu-threshold 85 --mem-threshold 80 --interval 30
+./cpu_memory_monitor.sh --cpu-threshold 85 --mem-threshold 80 --disk-threshold 90 --interval 30
 ./ssl_cert_check.sh hosts.txt --warn 30 --crit 7 --email ops@example.com
 ./user_audit.sh --output /tmp/audit.txt
 ```
@@ -153,16 +153,25 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 
 ## Known Issues
 
-See the [Issues](https://github.com/vivs-ty/infra-ops-scripts/issues) tab for bugs and planned improvements including:
+See the [Issues](https://github.com/vivs-ty/infra-ops-scripts/issues) tab for bugs and planned improvements.
 
-- [#12](https://github.com/vivs-ty/infra-ops-scripts/issues/12) `terraform-plan.yml` — missing `workflow_dispatch` and no error handling for missing plan output
-- [#13](https://github.com/vivs-ty/infra-ops-scripts/issues/13) `terraform-apply.yml` — missing concurrency block allows parallel runs to corrupt state
-- [#14](https://github.com/vivs-ty/infra-ops-scripts/issues/14) `ansible-lint.yml` — hardcoded playbook list will miss new playbooks
-- [#15](https://github.com/vivs-ty/infra-ops-scripts/issues/15) `ansible-lint.yml` — unpinned ansible/ansible-lint versions cause non-deterministic runs
-- [#1](https://github.com/vivs-ty/infra-ops-scripts/issues/1) `cpu_memory_monitor.sh` — add disk usage threshold alerting
-- [#2](https://github.com/vivs-ty/infra-ops-scripts/issues/2) `ssl_cert_check.sh` — `date -d` not compatible with macOS/BSD
-- [#3](https://github.com/vivs-ty/infra-ops-scripts/issues/3) `backup.sh` — add remote backup via rsync over SSH
-- [#4](https://github.com/vivs-ty/infra-ops-scripts/issues/4) `docker_health_check.sh` — no re-verification after auto-restart
-- [#5](https://github.com/vivs-ty/infra-ops-scripts/issues/5) `playbook_patch_os.yml` — add pre-patch snapshot for rollback
-- [#6](https://github.com/vivs-ty/infra-ops-scripts/issues/6) `log_rotate.sh` — maxdepth misses deeply nested log directories
-- [#8](https://github.com/vivs-ty/infra-ops-scripts/issues/8) `windows_update_status.ps1` — WUA COM object fails on WSUS-configured servers
+### Open
+
+| # | File | Issue |
+|---|---|---|
+| [#2](https://github.com/vivs-ty/infra-ops-scripts/issues/2) | `ssl_cert_check.sh` | `date -d` not compatible with macOS/BSD |
+| [#3](https://github.com/vivs-ty/infra-ops-scripts/issues/3) | `backup.sh` | Add remote backup via rsync over SSH |
+| [#4](https://github.com/vivs-ty/infra-ops-scripts/issues/4) | `docker_health_check.sh` | No re-verification after auto-restart |
+| [#5](https://github.com/vivs-ty/infra-ops-scripts/issues/5) | `playbook_patch_os.yml` | Add pre-patch snapshot for rollback |
+| [#6](https://github.com/vivs-ty/infra-ops-scripts/issues/6) | `log_rotate.sh` | `maxdepth` misses deeply nested log directories |
+| [#8](https://github.com/vivs-ty/infra-ops-scripts/issues/8) | `windows_update_status.ps1` | WUA COM object fails on WSUS-configured servers |
+
+### Fixed
+
+| # | File | Fix |
+|---|---|---|
+| [#1](https://github.com/vivs-ty/infra-ops-scripts/issues/1) | `cpu_memory_monitor.sh` | Added `-d`/`--disk-threshold` flag and per-mount disk alerting |
+| [#12](https://github.com/vivs-ty/infra-ops-scripts/issues/12) | `terraform-plan.yml` | Added `workflow_dispatch`, path validation, `try/catch` on plan output, artifact upload |
+| [#13](https://github.com/vivs-ty/infra-ops-scripts/issues/13) | `terraform-apply.yml` | Added `concurrency` block to queue parallel runs; moved context expressions out of inline JS |
+| [#14](https://github.com/vivs-ty/infra-ops-scripts/issues/14) | `ansible-lint.yml` | Replaced hardcoded playbook list with dynamic `find` discovery |
+| [#15](https://github.com/vivs-ty/infra-ops-scripts/issues/15) | `ansible-lint.yml` | Pinned `ansible-lint==24.2.3` and `ansible-core==2.17.9` |
