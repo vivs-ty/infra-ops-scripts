@@ -150,7 +150,7 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 <p><strong>Usage:</strong></p>
 <pre><code class="language-bash">./backup.sh /etc/nginx /backups 14
 ./log_rotate.sh /var/log/nginx --age 7 --delete 60 --dry-run
-./cpu_memory_monitor.sh --cpu-threshold 85 --mem-threshold 80 --interval 30
+./cpu_memory_monitor.sh --cpu-threshold 85 --mem-threshold 80 --disk-threshold 90 --interval 30
 ./ssl_cert_check.sh hosts.txt --warn 30 --crit 7 --email ops@example.com
 ./user_audit.sh --output /tmp/audit.txt
 </code></pre>
@@ -311,20 +311,86 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 </table>
 <hr />
 <h2>Known Issues</h2>
-<p>See the <a href="https://github.com/vivs-ty/infra-ops-scripts/issues">Issues</a> tab for bugs and planned improvements including:</p>
-<ul>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/12">#12</a> <code>terraform-plan.yml</code> — missing <code>workflow_dispatch</code> and no error handling for missing plan output</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/13">#13</a> <code>terraform-apply.yml</code> — missing concurrency block allows parallel runs to corrupt state</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/14">#14</a> <code>ansible-lint.yml</code> — hardcoded playbook list will miss new playbooks</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/15">#15</a> <code>ansible-lint.yml</code> — unpinned ansible/ansible-lint versions cause non-deterministic runs</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/1">#1</a> <code>cpu_memory_monitor.sh</code> — add disk usage threshold alerting</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/2">#2</a> <code>ssl_cert_check.sh</code> — <code>date -d</code> not compatible with macOS/BSD</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/3">#3</a> <code>backup.sh</code> — add remote backup via rsync over SSH</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/4">#4</a> <code>docker_health_check.sh</code> — no re-verification after auto-restart</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/5">#5</a> <code>playbook_patch_os.yml</code> — add pre-patch snapshot for rollback</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/6">#6</a> <code>log_rotate.sh</code> — maxdepth misses deeply nested log directories</li>
-<li><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/8">#8</a> <code>windows_update_status.ps1</code> — WUA COM object fails on WSUS-configured servers</li>
-</ul>
+<p>See the <a href="https://github.com/vivs-ty/infra-ops-scripts/issues">Issues</a> tab for bugs and planned improvements.</p>
+<h3>Open</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Issue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/2">#2</a></td>
+<td><code>ssl_cert_check.sh</code></td>
+<td><code>date -d</code> not compatible with macOS/BSD</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/3">#3</a></td>
+<td><code>backup.sh</code></td>
+<td>Add remote backup via rsync over SSH</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/4">#4</a></td>
+<td><code>docker_health_check.sh</code></td>
+<td>No re-verification after auto-restart</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/5">#5</a></td>
+<td><code>playbook_patch_os.yml</code></td>
+<td>Add pre-patch snapshot for rollback</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/6">#6</a></td>
+<td><code>log_rotate.sh</code></td>
+<td><code>maxdepth</code> misses deeply nested log directories</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/8">#8</a></td>
+<td><code>windows_update_status.ps1</code></td>
+<td>WUA COM object fails on WSUS-configured servers</td>
+</tr>
+</tbody>
+</table>
+<h3>Fixed</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/1">#1</a></td>
+<td><code>cpu_memory_monitor.sh</code></td>
+<td>Added <code>-d</code>/<code>--disk-threshold</code> flag and per-mount disk alerting</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/12">#12</a></td>
+<td><code>terraform-plan.yml</code></td>
+<td>Added <code>workflow_dispatch</code>, path validation, <code>try/catch</code> on plan output, artifact upload</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/13">#13</a></td>
+<td><code>terraform-apply.yml</code></td>
+<td>Added <code>concurrency</code> block to queue parallel runs; moved context expressions out of inline JS</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/14">#14</a></td>
+<td><code>ansible-lint.yml</code></td>
+<td>Replaced hardcoded playbook list with dynamic <code>find</code> discovery</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/15">#15</a></td>
+<td><code>ansible-lint.yml</code></td>
+<td>Pinned <code>ansible-lint==24.2.3</code> and <code>ansible-core==2.17.9</code></td>
+</tr>
+</tbody>
+</table>
     <section class="files">
       <h2>Repository Files</h2>
       <ul><li>Compiling software packages</li><li>Controlling system locale</li><li>Discover and mount a storage volume</li><li>Install and launch Apache</li><li>LICENSE</li><li>Launching Docker</li><li>Working with LXD containers</li><li>Working with package managers</li><li>apply.sh</li><li>backup.sh</li><li>check_services_status.sh</li><li>cpu_memory_monitor.sh</li><li>cpu_memory_report.ps1</li><li>destroy.sh</li><li>disk_space.ps1</li><li>docker_cleanup.sh</li><li>docker_health_check.sh</li><li>event_log_errors.ps1</li><li>log_rotate.sh</li><li>lxd_snapshot.sh</li><li>plan.sh</li><li>playbook_deploy_app.yml</li><li>playbook_patch_os.yml</li><li>playbook_service_restart.yml</li><li>playbook_service_status_check.yml</li><li>playbook_user_management.yml</li><li>service_status.yml</li><li>ssl_cert_check.sh</li><li>start_stop_restart_service.sh</li><li>state_list.sh</li><li>system timezone</li><li>user_audit.sh</li><li>validate.sh</li><li>windows_update_status.ps1</li><li>workspace.sh</li></ul>
