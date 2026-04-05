@@ -23,6 +23,7 @@ $TableHeader = @"
     <th>Optional</th>
     <th>Reboot Required</th>
     <th>Last Update Check</th>
+    <th>Update Source</th>
     <th>Status</th>
   </tr>
 "@
@@ -42,10 +43,45 @@ foreach ($ServerName in $ServerList)
         {
             $Data = Invoke-Command -ComputerName $ServerName -ErrorAction Stop -ScriptBlock {
 
-                # Query Windows Update via COM object
-                $UpdateSession    = New-Object -ComObject Microsoft.Update.Session
-                $UpdateSearcher   = $UpdateSession.CreateUpdateSearcher()
-                $SearchResult     = $UpdateSearcher.Search("IsInstalled=0 and Type='Software'")
+                # Detect whether this machine is configured to use a WSUS server
+                $WsusAuKey   = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
+                $UsesWsus    = (Get-ItemProperty -Path $WsusAuKey -Name UseWUServer -ErrorAction SilentlyContinue).UseWUServer -eq 1
+                $UpdateSource = if ($UsesWsus) { "WSUS" } else { "Windows Update" }
+
+                # ServiceID for the public Windows Update service (used as fallback when WSUS fails)
+                $WU_SERVICE_ID = "9482f4b4-e343-43b6-b170-9a65bc822c77"
+
+                $SearchResult  = $null
+                $SearchError   = $null
+
+                try {
+                    $UpdateSession  = New-Object -ComObject Microsoft.Update.Session
+                    $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
+
+                    # On WSUS machines, attempt the search against the managed (WSUS) server first.
+                    # ServerSelection values: 1 = ssDefault, 2 = ssManagedServer (WSUS), 3 = ssWindowsUpdate, 4 = ssOthers
+                    if ($UsesWsus) {
+                        $UpdateSearcher.ServerSelection = 2   # ssManagedServer (WSUS)
+                    }
+
+                    $SearchResult = $UpdateSearcher.Search("IsInstalled=0 and Type='Software'")
+                }
+                catch {
+                    $SearchError = "Primary search failed ($UpdateSource): $($_.Exception.Message)"
+
+                    # Fallback: query the public Windows Update service directly, bypassing WSUS
+                    try {
+                        $UpdateSession  = New-Object -ComObject Microsoft.Update.Session
+                        $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
+                        $UpdateSearcher.ServerSelection = 3   # ssOthers
+                        $UpdateSearcher.ServiceID       = $WU_SERVICE_ID
+                        $SearchResult  = $UpdateSearcher.Search("IsInstalled=0 and Type='Software'")
+                        $UpdateSource  = "Windows Update (WSUS fallback)"
+                    }
+                    catch {
+                        throw "WUA query failed on both WSUS and Windows Update fallback. Primary error: $SearchError. Fallback error: $($_.Exception.Message)"
+                    }
+                }
 
                 $PendingTotal = $SearchResult.Updates.Count
                 $Critical     = ($SearchResult.Updates | Where-Object { $_.MsrcSeverity -eq 'Critical' }).Count
@@ -54,7 +90,7 @@ foreach ($ServerName in $ServerList)
 
                 # Check reboot pending
                 $RebootRequired = $false
-                $WuRebootKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
+                $WuRebootKey  = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
                 $CbsRebootKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending"
                 if ((Test-Path $WuRebootKey) -or (Test-Path $CbsRebootKey)) {
                     $RebootRequired = $true
@@ -73,6 +109,7 @@ foreach ($ServerName in $ServerList)
                     Optional        = $Optional
                     RebootRequired  = $RebootRequired
                     LastCheckTime   = $LastCheckTime
+                    UpdateSource    = $UpdateSource
                 }
             }
 
@@ -97,6 +134,7 @@ foreach ($ServerName in $ServerList)
     <td>$($Data.Optional)</td>
     <td>$($Data.RebootRequired)</td>
     <td>$($Data.LastCheckTime)</td>
+    <td>$($Data.UpdateSource)</td>
     <td>$Status</td>
   </tr>
 "@
