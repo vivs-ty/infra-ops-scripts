@@ -155,22 +155,19 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 
 See the [Issues](https://github.com/vivs-ty/infra-ops-scripts/issues) tab for bugs and planned improvements.
 
-### Open
-
-| # | File | Issue |
-|---|---|---|
-| [#2](https://github.com/vivs-ty/infra-ops-scripts/issues/2) | `ssl_cert_check.sh` | `date -d` not compatible with macOS/BSD |
-| [#3](https://github.com/vivs-ty/infra-ops-scripts/issues/3) | `backup.sh` | Add remote backup via rsync over SSH |
-| [#4](https://github.com/vivs-ty/infra-ops-scripts/issues/4) | `docker_health_check.sh` | No re-verification after auto-restart |
-| [#5](https://github.com/vivs-ty/infra-ops-scripts/issues/5) | `playbook_patch_os.yml` | Add pre-patch snapshot for rollback |
-| [#6](https://github.com/vivs-ty/infra-ops-scripts/issues/6) | `log_rotate.sh` | `maxdepth` misses deeply nested log directories |
-| [#8](https://github.com/vivs-ty/infra-ops-scripts/issues/8) | `windows_update_status.ps1` | WUA COM object fails on WSUS-configured servers |
+All known issues have been resolved. See closed issues for full details.
 
 ### Fixed
 
 | # | File | Fix |
 |---|---|---|
 | [#1](https://github.com/vivs-ty/infra-ops-scripts/issues/1) | `cpu_memory_monitor.sh` | Added `-d`/`--disk-threshold` flag and per-mount disk alerting |
+| [#2](https://github.com/vivs-ty/infra-ops-scripts/issues/2) | `ssl_cert_check.sh` | Replaced `date -d` with portable `parse_date_epoch()` supporting GNU, BSD, and Perl |
+| [#3](https://github.com/vivs-ty/infra-ops-scripts/issues/3) | `backup.sh` | Added `-r`/`--remote` and `-i`/`--identity` flags for rsync over SSH |
+| [#4](https://github.com/vivs-ty/infra-ops-scripts/issues/4) | `docker_health_check.sh` | Added post-restart re-verification with configurable `-w`/`--verify-wait` delay |
+| [#5](https://github.com/vivs-ty/infra-ops-scripts/issues/5) | `playbook_patch_os.yml` | Added opt-in `pre_tasks` LXD snapshot with retention pruning |
+| [#6](https://github.com/vivs-ty/infra-ops-scripts/issues/6) | `log_rotate.sh` | Replaced hardcoded `-maxdepth 2` with configurable `-m`/`--maxdepth` (default: unlimited) |
+| [#8](https://github.com/vivs-ty/infra-ops-scripts/issues/8) | `windows_update_status.ps1` | Added WSUS detection and public Windows Update fallback via `ServerSelection`/`ServiceID` |
 | [#12](https://github.com/vivs-ty/infra-ops-scripts/issues/12) | `terraform-plan.yml` | Added `workflow_dispatch`, path validation, `try/catch` on plan output, artifact upload |
 | [#13](https://github.com/vivs-ty/infra-ops-scripts/issues/13) | `terraform-apply.yml` | Added `concurrency` block to queue parallel runs; moved context expressions out of inline JS |
 | [#14](https://github.com/vivs-ty/infra-ops-scripts/issues/14) | `ansible-lint.yml` | Replaced hardcoded playbook list with dynamic `find` discovery |
