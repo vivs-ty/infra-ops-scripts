@@ -354,6 +354,11 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 <td>Replaced hardcoded <code>-maxdepth 2</code> with configurable <code>-m</code>/<code>--maxdepth</code> (default: unlimited)</td>
 </tr>
 <tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/7">#7</a></td>
+<td><code>terraform-apply.yml</code></td>
+<td>Added <code>force_unlock_id</code> input; force-unlock step runs before plan when provided</td>
+</tr>
+<tr>
 <td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/8">#8</a></td>
 <td><code>windows_update_status.ps1</code></td>
 <td>Added WSUS detection and public Windows Update fallback via <code>ServerSelection</code>/<code>ServiceID</code></td>
@@ -377,6 +382,21 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 <td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/15">#15</a></td>
 <td><code>ansible-lint.yml</code></td>
 <td>Pinned <code>ansible-lint==24.2.3</code> and <code>ansible-core==2.17.9</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/16">#16</a></td>
+<td><code>backup.sh</code></td>
+<td>Validate <code>RETENTION_DAYS &gt;= 1</code>; <code>0</code> now exits with a clear error</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/17">#17</a></td>
+<td><code>docker_cleanup.sh</code></td>
+<td>All four <code>prune</code> calls now check exit codes and report failures</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/18">#18</a></td>
+<td><code>user_audit.sh</code></td>
+<td>Root check at startup warns which sections will be incomplete when run without <code>sudo</code></td>
 </tr>
 </tbody>
 </table>
