@@ -17,6 +17,7 @@ usage() {
   echo "  -a, --all              - Check all running containers (default)"
   echo "  -n, --name  NAME       - Check a specific container by name or ID"
   echo "  -r, --restart          - Restart containers that are unhealthy"
+  echo "  -w, --verify-wait SECS - Seconds to wait before re-checking health after restart (default: 15)"
   echo "  -l, --log    FILE      - Log file path (default: /var/log/docker_health.log)"
   echo "  -e, --email  ADDR      - Email address to alert on unhealthy containers"
   echo ""
@@ -33,17 +34,19 @@ usage() {
 CHECK_ALL=true
 TARGET_NAME=""
 AUTO_RESTART=false
+VERIFY_WAIT=15
 LOG_FILE="/var/log/docker_health.log"
 ALERT_EMAIL=""
 
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
-    -a|--all)      CHECK_ALL=true;         shift ;;
-    -n|--name)     TARGET_NAME="$2"; CHECK_ALL=false; shift 2 ;;
-    -r|--restart)  AUTO_RESTART=true;      shift ;;
-    -l|--log)      LOG_FILE="$2";          shift 2 ;;
-    -e|--email)    ALERT_EMAIL="$2";       shift 2 ;;
-    -h|--help)     usage ;;
+    -a|--all)          CHECK_ALL=true;         shift ;;
+    -n|--name)         TARGET_NAME="$2"; CHECK_ALL=false; shift 2 ;;
+    -r|--restart)      AUTO_RESTART=true;      shift ;;
+    -w|--verify-wait)  VERIFY_WAIT="$2";       shift 2 ;;
+    -l|--log)          LOG_FILE="$2";          shift 2 ;;
+    -e|--email)        ALERT_EMAIL="$2";       shift 2 ;;
+    -h|--help)         usage ;;
     *) echo "ERROR: Unknown option '$1'."; usage ;;
   esac
 done
@@ -86,17 +89,33 @@ check_container() {
     echo "  [UNHEALTHY ] $name ($id) — health: $health"
     log_status="UNHEALTHY"
     (( UNHEALTHY++ ))
-    ALERT_LINES+=("$TIMESTAMP | UNHEALTHY | $name | $id")
 
     if [[ "$AUTO_RESTART" == true ]]; then
       echo "    --> Restarting $name..."
       if docker restart "$id" &>/dev/null; then
-        echo "    --> Restarted successfully."
-        log_status="RESTARTED"
         (( RESTARTED++ ))
+        echo "    --> Restarted. Waiting ${VERIFY_WAIT}s before re-checking health..."
+        sleep "$VERIFY_WAIT"
+        local new_health
+        new_health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$id" 2>/dev/null)
+        if [[ "$new_health" == "healthy" ]]; then
+          echo "    --> Post-restart health: HEALTHY"
+          log_status="RESTART_OK"
+          (( UNHEALTHY-- ))
+          (( HEALTHY++ ))
+          # Container recovered — no alert needed
+        else
+          echo "    --> Post-restart health: ${new_health:-unknown} — still not healthy"
+          log_status="RESTART_STILL_UNHEALTHY"
+          ALERT_LINES+=("$TIMESTAMP | RESTART_STILL_UNHEALTHY | $name | $id")
+        fi
       else
         echo "    --> ERROR: Failed to restart $name."
+        log_status="RESTART_FAILED"
+        ALERT_LINES+=("$TIMESTAMP | RESTART_FAILED | $name | $id")
       fi
+    else
+      ALERT_LINES+=("$TIMESTAMP | UNHEALTHY | $name | $id")
     fi
   elif [[ "$health" == "healthy" ]]; then
     echo "  [HEALTHY   ] $name ($id)"
