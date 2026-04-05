@@ -7,6 +7,39 @@
   vars:
     reboot_required: false
     reboot_timeout: 300  # Seconds to wait for host to come back after reboot
+    lxd_snapshot_enabled: false   # Set to true to take a pre-patch LXD snapshot for rollback
+    lxd_snapshot_retain: 5        # Number of pre-patch snapshots to keep per container
+
+  pre_tasks:
+
+    # -----------------------------------------------------------------------
+    # Optional: LXD pre-patch snapshot (runs on the Ansible controller)
+    # Restore with: lxc restore <container> <snapshot_name>
+    # -----------------------------------------------------------------------
+
+    - name: Take pre-patch LXD snapshot for rollback
+      command: >
+        lxc snapshot {{ inventory_hostname }}
+        pre_patch_{{ ansible_date_time.epoch }}
+      delegate_to: localhost
+      become: false
+      when: lxd_snapshot_enabled | bool
+      register: lxd_snapshot_result
+      changed_when: lxd_snapshot_result.rc == 0
+
+    - name: Prune old pre-patch snapshots (keep last {{ lxd_snapshot_retain }})
+      shell: |
+        lxc info {{ inventory_hostname }} \
+          | awk '/^Snapshots:/,0' \
+          | grep 'pre_patch_' \
+          | awk '{print $1}' \
+          | sort \
+          | head -n -{{ lxd_snapshot_retain }} \
+          | xargs -r -I{} lxc delete {{ inventory_hostname }}/{}
+      delegate_to: localhost
+      become: false
+      when: lxd_snapshot_enabled | bool
+      changed_when: false
 
   tasks:
 
