@@ -312,48 +312,7 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 <hr />
 <h2>Known Issues</h2>
 <p>See the <a href="https://github.com/vivs-ty/infra-ops-scripts/issues">Issues</a> tab for bugs and planned improvements.</p>
-<h3>Open</h3>
-<table>
-<thead>
-<tr>
-<th>#</th>
-<th>File</th>
-<th>Issue</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/2">#2</a></td>
-<td><code>ssl_cert_check.sh</code></td>
-<td><code>date -d</code> not compatible with macOS/BSD</td>
-</tr>
-<tr>
-<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/3">#3</a></td>
-<td><code>backup.sh</code></td>
-<td>Add remote backup via rsync over SSH</td>
-</tr>
-<tr>
-<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/4">#4</a></td>
-<td><code>docker_health_check.sh</code></td>
-<td>No re-verification after auto-restart</td>
-</tr>
-<tr>
-<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/5">#5</a></td>
-<td><code>playbook_patch_os.yml</code></td>
-<td>Add pre-patch snapshot for rollback</td>
-</tr>
-<tr>
-<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/6">#6</a></td>
-<td><code>log_rotate.sh</code></td>
-<td><code>maxdepth</code> misses deeply nested log directories</td>
-</tr>
-<tr>
-<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/8">#8</a></td>
-<td><code>windows_update_status.ps1</code></td>
-<td>WUA COM object fails on WSUS-configured servers</td>
-</tr>
-</tbody>
-</table>
+<p>All known issues have been resolved. See closed issues for full details.</p>
 <h3>Fixed</h3>
 <table>
 <thead>
@@ -368,6 +327,36 @@ ansible-playbook -i inventory/hosts.ini playbook_user_management.yml
 <td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/1">#1</a></td>
 <td><code>cpu_memory_monitor.sh</code></td>
 <td>Added <code>-d</code>/<code>--disk-threshold</code> flag and per-mount disk alerting</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/2">#2</a></td>
+<td><code>ssl_cert_check.sh</code></td>
+<td>Replaced <code>date -d</code> with portable <code>parse_date_epoch()</code> supporting GNU, BSD, and Perl</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/3">#3</a></td>
+<td><code>backup.sh</code></td>
+<td>Added <code>-r</code>/<code>--remote</code> and <code>-i</code>/<code>--identity</code> flags for rsync over SSH</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/4">#4</a></td>
+<td><code>docker_health_check.sh</code></td>
+<td>Added post-restart re-verification with configurable <code>-w</code>/<code>--verify-wait</code> delay</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/5">#5</a></td>
+<td><code>playbook_patch_os.yml</code></td>
+<td>Added opt-in <code>pre_tasks</code> LXD snapshot with retention pruning</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/6">#6</a></td>
+<td><code>log_rotate.sh</code></td>
+<td>Replaced hardcoded <code>-maxdepth 2</code> with configurable <code>-m</code>/<code>--maxdepth</code> (default: unlimited)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/8">#8</a></td>
+<td><code>windows_update_status.ps1</code></td>
+<td>Added WSUS detection and public Windows Update fallback via <code>ServerSelection</code>/<code>ServiceID</code></td>
 </tr>
 <tr>
 <td><a href="https://github.com/vivs-ty/infra-ops-scripts/issues/12">#12</a></td>
