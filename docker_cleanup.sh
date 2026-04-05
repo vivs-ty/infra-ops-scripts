@@ -84,8 +84,11 @@ if [[ "$DO_CONTAINERS" == true ]]; then
   else
     echo "$STOPPED" | while read -r line; do echo "  $line"; done
     if [[ "$DRY_RUN" == false ]]; then
-      docker container prune -f
-      echo "  Stopped containers removed."
+      if docker container prune -f; then
+        echo "  Stopped containers removed."
+      else
+        echo "  ERROR: docker container prune failed (exit $?)."
+      fi
     fi
   fi
 fi
@@ -102,8 +105,11 @@ if [[ "$DO_IMAGES" == true ]]; then
   else
     echo "$DANGLING" | while read -r line; do echo "  $line"; done
     if [[ "$DRY_RUN" == false ]]; then
-      docker image prune -f
-      echo "  Dangling images removed."
+      if docker image prune -f; then
+        echo "  Dangling images removed."
+      else
+        echo "  ERROR: docker image prune failed (exit $?)."
+      fi
     fi
   fi
 fi
@@ -120,8 +126,11 @@ if [[ "$DO_VOLUMES" == true ]]; then
   else
     echo "$VOLUMES" | while read -r line; do echo "  $line"; done
     if [[ "$DRY_RUN" == false ]]; then
-      docker volume prune -f
-      echo "  Unused volumes removed."
+      if docker volume prune -f; then
+        echo "  Unused volumes removed."
+      else
+        echo "  ERROR: docker volume prune failed (exit $?)."
+      fi
     fi
   fi
 fi
@@ -138,8 +147,11 @@ if [[ "$DO_NETWORKS" == true ]]; then
   else
     echo "$NETWORKS" | while read -r line; do echo "  $line"; done
     if [[ "$DRY_RUN" == false ]]; then
-      docker network prune -f
-      echo "  Unused networks removed."
+      if docker network prune -f; then
+        echo "  Unused networks removed."
+      else
+        echo "  ERROR: docker network prune failed (exit $?)."
+      fi
     fi
   fi
 fi

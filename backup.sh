@@ -68,8 +68,8 @@ if [[ ! -d "$SOURCE_DIR" ]]; then
   exit 1
 fi
 
-if ! [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]]; then
-  echo "ERROR: RETENTION_DAYS must be a positive integer."
+if ! [[ "$RETENTION_DAYS" =~ ^[0-9]+$ ]] || [[ "$RETENTION_DAYS" -lt 1 ]]; then
+  echo "ERROR: RETENTION_DAYS must be a positive integer >= 1."
   exit 1
 fi
 

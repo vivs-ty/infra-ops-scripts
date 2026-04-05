@@ -40,6 +40,18 @@ done
 
 ######################################################################################
 
+# Warn when not running as root — several sections require elevated privileges
+if [[ "$EUID" -ne 0 ]]; then
+  echo "WARNING: Not running as root. The following sections may return incomplete or empty results:"
+  echo "  - Users with empty passwords (/etc/shadow is root-only)"
+  echo "  - Failed login attempts (lastb requires root or adm group)"
+  echo "  - Some sudoers entries (/etc/sudoers may not be readable)"
+  echo "  Run with sudo for a complete audit."
+  echo ""
+fi
+
+######################################################################################
+
 HOSTNAME=$(hostname)
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 REPORT=""

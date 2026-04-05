@@ -13,6 +13,10 @@ on:
         description: 'Path to Terraform configuration'
         required: true
         default: 'terraform'
+      force_unlock_id:
+        description: 'Terraform state lock ID to force-unlock before apply (leave blank to skip)'
+        required: false
+        default: ''
 
 concurrency:
   group: terraform-apply-${{ github.ref }}
@@ -56,6 +60,13 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
+        working-directory: ${{ env.TERRAFORM_PATH }}
+
+      - name: Force-unlock Terraform state
+        if: github.event.inputs.force_unlock_id != ''
+        run: |
+          echo "Force-unlocking state with lock ID: ${{ github.event.inputs.force_unlock_id }}"
+          terraform force-unlock -force "${{ github.event.inputs.force_unlock_id }}"
         working-directory: ${{ env.TERRAFORM_PATH }}
 
       - name: Terraform Plan

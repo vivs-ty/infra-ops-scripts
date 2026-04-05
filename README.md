@@ -167,8 +167,12 @@ All known issues have been resolved. See closed issues for full details.
 | [#4](https://github.com/vivs-ty/infra-ops-scripts/issues/4) | `docker_health_check.sh` | Added post-restart re-verification with configurable `-w`/`--verify-wait` delay |
 | [#5](https://github.com/vivs-ty/infra-ops-scripts/issues/5) | `playbook_patch_os.yml` | Added opt-in `pre_tasks` LXD snapshot with retention pruning |
 | [#6](https://github.com/vivs-ty/infra-ops-scripts/issues/6) | `log_rotate.sh` | Replaced hardcoded `-maxdepth 2` with configurable `-m`/`--maxdepth` (default: unlimited) |
+| [#7](https://github.com/vivs-ty/infra-ops-scripts/issues/7) | `terraform-apply.yml` | Added `force_unlock_id` input; force-unlock step runs before plan when provided |
 | [#8](https://github.com/vivs-ty/infra-ops-scripts/issues/8) | `windows_update_status.ps1` | Added WSUS detection and public Windows Update fallback via `ServerSelection`/`ServiceID` |
 | [#12](https://github.com/vivs-ty/infra-ops-scripts/issues/12) | `terraform-plan.yml` | Added `workflow_dispatch`, path validation, `try/catch` on plan output, artifact upload |
 | [#13](https://github.com/vivs-ty/infra-ops-scripts/issues/13) | `terraform-apply.yml` | Added `concurrency` block to queue parallel runs; moved context expressions out of inline JS |
 | [#14](https://github.com/vivs-ty/infra-ops-scripts/issues/14) | `ansible-lint.yml` | Replaced hardcoded playbook list with dynamic `find` discovery |
 | [#15](https://github.com/vivs-ty/infra-ops-scripts/issues/15) | `ansible-lint.yml` | Pinned `ansible-lint==24.2.3` and `ansible-core==2.17.9` |
+| [#16](https://github.com/vivs-ty/infra-ops-scripts/issues/16) | `backup.sh` | Validate `RETENTION_DAYS >= 1`; `0` now exits with a clear error |
+| [#17](https://github.com/vivs-ty/infra-ops-scripts/issues/17) | `docker_cleanup.sh` | All four `prune` calls now check exit codes and report failures |
+| [#18](https://github.com/vivs-ty/infra-ops-scripts/issues/18) | `user_audit.sh` | Root check at startup warns which sections will be incomplete when run without `sudo` |
