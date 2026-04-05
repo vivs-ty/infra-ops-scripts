@@ -74,6 +74,21 @@ fi
 
 ######################################################################################
 
+# Helper: parse an OpenSSL date string to a Unix epoch in a cross-platform way.
+# openssl enddate format: "Apr  5 12:34:56 2026 GMT"
+# GNU date  : date -d "..." +%s          (Linux)
+# BSD date  : date -j -f "%b %e %H:%M:%S %Y %Z" "..." +%s  (macOS/FreeBSD)
+# Perl      : fallback when neither works
+parse_date_epoch() {
+  local raw="$1"
+  local epoch
+  epoch=$(date -d "$raw" +%s 2>/dev/null)
+  if [[ -n "$epoch" ]]; then echo "$epoch"; return; fi
+  epoch=$(date -j -f "%b %e %H:%M:%S %Y %Z" "$raw" +%s 2>/dev/null)
+  if [[ -n "$epoch" ]]; then echo "$epoch"; return; fi
+  perl -MTime::Piece -e "print Time::Piece->strptime('$raw','%b %e %H:%M:%S %Y %Z')->epoch" 2>/dev/null
+}
+
 check_cert() {
   local host="$1"
   local port="$2"
@@ -91,7 +106,7 @@ check_cert() {
   fi
 
   local expiry_epoch
-  expiry_epoch=$(date -d "$expiry_raw" +%s 2>/dev/null)
+  expiry_epoch=$(parse_date_epoch "$expiry_raw")
   if [[ -z "$expiry_epoch" ]]; then
     echo "ERROR" "$host:$port" "Could not parse expiry date: $expiry_raw"
     return
