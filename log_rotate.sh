@@ -20,6 +20,7 @@ usage() {
   echo "  -a, --age     DAYS   - Compress logs older than N days (default: 3)"
   echo "  -d, --delete  DAYS   - Delete compressed logs older than N days (default: 30)"
   echo "  -e, --ext     EXT    - Log file extension to target (default: log)"
+  echo "  -m, --maxdepth N     - Maximum directory depth for find (default: unlimited)"
   echo "  -n, --dry-run        - Show what would be done without making changes"
   echo ""
   echo "EXAMPLES:"
@@ -37,6 +38,7 @@ LOG_DIR=""
 COMPRESS_AGE=3
 DELETE_AGE=30
 LOG_EXT="log"
+MAX_DEPTH=""   # Empty = unlimited (no -maxdepth passed to find)
 DRY_RUN=false
 SCRIPT_LOG="/var/log/log_rotate.log"
 
@@ -58,6 +60,8 @@ while [[ "$#" -gt 0 ]]; do
       DELETE_AGE="$2"; shift 2 ;;
     -e|--ext)
       LOG_EXT="$2"; shift 2 ;;
+    -m|--maxdepth)
+      MAX_DEPTH="$2"; shift 2 ;;
     -n|--dry-run)
       DRY_RUN=true; shift ;;
     *)
@@ -76,6 +80,11 @@ fi
 
 if ! [[ "$COMPRESS_AGE" =~ ^[0-9]+$ ]] || ! [[ "$DELETE_AGE" =~ ^[0-9]+$ ]]; then
   echo "ERROR: --age and --delete must be positive integers."
+  exit 1
+fi
+
+if [[ -n "$MAX_DEPTH" ]] && ! [[ "$MAX_DEPTH" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: --maxdepth must be a positive integer."
   exit 1
 fi
 
@@ -104,11 +113,16 @@ echo "Log directory        : $LOG_DIR"
 echo "Compress logs older  : $COMPRESS_AGE days"
 echo "Delete logs older    : $DELETE_AGE days"
 echo "File extension       : .$LOG_EXT"
+echo "Max depth            : ${MAX_DEPTH:-unlimited}"
 echo "Dry run              : $DRY_RUN"
 echo "------------------------------------------------------------"
 echo ""
 
 ######################################################################################
+
+# Build depth argument for find (empty = no restriction)
+DEPTH_ARG=()
+[[ -n "$MAX_DEPTH" ]] && DEPTH_ARG=(-maxdepth "$MAX_DEPTH")
 
 # Step 1 — Compress log files older than COMPRESS_AGE days
 echo "==> Compressing .$LOG_EXT files older than $COMPRESS_AGE days..."
@@ -127,7 +141,7 @@ while IFS= read -r logfile; do
       ((ERRORS++))
     fi
   fi
-done < <(find "$LOG_DIR" -maxdepth 2 -name "*.${LOG_EXT}" -not -name "*.gz" -mtime +"$COMPRESS_AGE" -type f)
+done < <(find "$LOG_DIR" "${DEPTH_ARG[@]}" -name "*.${LOG_EXT}" -not -name "*.gz" -mtime +"$COMPRESS_AGE" -type f)
 
 if [[ "$COMPRESSED_COUNT" -eq 0 && "$DRY_RUN" == false ]]; then
   echo "  No files to compress."
@@ -153,7 +167,7 @@ while IFS= read -r gzfile; do
       ((ERRORS++))
     fi
   fi
-done < <(find "$LOG_DIR" -maxdepth 2 -name "*.${LOG_EXT}.gz" -mtime +"$DELETE_AGE" -type f)
+done < <(find "$LOG_DIR" "${DEPTH_ARG[@]}" -name "*.${LOG_EXT}.gz" -mtime +"$DELETE_AGE" -type f)
 
 if [[ "$DELETED_COUNT" -eq 0 && "$DRY_RUN" == false ]]; then
   echo "  No files to delete."
